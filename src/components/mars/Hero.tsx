@@ -12,7 +12,7 @@ export function Hero() {
         <div className="mt-auto mb-[6vh] flex flex-col items-center gap-5">
           <h1
             data-hero-in
-            className="display-title text-[clamp(2.1rem,7vw,6.2rem)] text-foreground"
+            className="display-title text-[clamp(1.9rem,5.4vw,5rem)] text-foreground"
           >
             Mars<span className="text-ember-gradient">:</span> Rewind
             <br className="md:hidden" /> <span className="text-ember-gradient">&amp;</span> Beyond

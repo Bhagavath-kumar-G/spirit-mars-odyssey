@@ -30,7 +30,7 @@ const haloFragment = /* glsl */ `
     float i = smoothstep(0.0, 0.46, f);
     i = i * i;
     float lf = clamp(dot(vN, uLight) * 0.7 + 0.45, 0.12, 1.0);
-    gl_FragColor = vec4(uColor * i * lf * 1.4, 1.0);
+    gl_FragColor = vec4(uColor * i * lf * 0.75, 1.0);
   }
 `;
 
@@ -129,14 +129,14 @@ function Moon({ size, orbit, speed, phase, tilt, seed }: {
 function SunAndEarth() {
   const [sun, earth] = useMemo(
     () => [
-      makeGlowTexture("rgba(255,236,210,1)", "rgba(255,170,90,0)"),
+      makeGlowTexture("rgba(255,244,228,1)", "rgba(255,150,70,0)"),
       makeGlowTexture("rgba(150,200,255,1)", "rgba(60,120,255,0)", 64),
     ],
     [],
   );
   return (
     <>
-      <sprite position={[-95, 30, -170]} scale={[46, 46, 1]}>
+      <sprite position={[-110, 34, -190]} scale={[26, 26, 1]}>
         <spriteMaterial map={sun} blending={THREE.AdditiveBlending} depthWrite={false} transparent />
       </sprite>
       <sprite position={[38, -14, -160]} scale={[1.4, 1.4, 1]}>
