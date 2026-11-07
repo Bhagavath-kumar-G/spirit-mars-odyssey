@@ -116,7 +116,9 @@ export function StoryChrome() {
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         className={cn(
           "hud-panel fixed bottom-8 right-8 z-30 hidden rounded-sm px-3.5 py-2.5 transition-all duration-500 hover:bg-primary/15 md:block",
-          pastHero ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0",
+          pastHero && active !== 2
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-4 opacity-0",
         )}
         aria-label="Return to the beginning"
       >

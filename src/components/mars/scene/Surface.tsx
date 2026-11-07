@@ -292,7 +292,7 @@ function Marker({ index }: { index: number }) {
     const active = world.active === index;
     const reached = world.roverX >= x - 0.2;
     const pulse = 0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 4);
-    if (ring.current) ring.current.opacity = active ? 0.45 + 0.4 * pulse : reached ? 0.18 : 0.32;
+    if (ring.current) ring.current.opacity = active ? 0.3 + 0.3 * pulse : reached ? 0.1 : 0.22;
     if (beacon.current) beacon.current.emissiveIntensity = active ? 3 + 2 * pulse : reached ? 0.6 : 1.6;
   });
   return (

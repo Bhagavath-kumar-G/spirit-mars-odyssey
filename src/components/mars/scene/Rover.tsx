@@ -21,11 +21,26 @@ export function Rover({ onReady }: { onReady?: (() => void) | undefined }) {
       if (mesh.isMesh) {
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        mats.forEach((mat) => {
-          const sm = mat as THREE.MeshStandardMaterial;
-          if (sm.isMeshStandardMaterial) sm.envMapIntensity = 0.9;
-        });
+        // The NASA file marks every material fully metallic, which renders near-black
+        // without a studio HDR. Clone and re-balance so the textures read under Mars light.
+        const fix = (mat: THREE.Material) => {
+          const sm = (mat as THREE.MeshStandardMaterial).clone();
+          if (!sm.isMeshStandardMaterial) return mat;
+          const name = sm.name.toLowerCase();
+          if (name.includes("silver") || name.includes("foil")) {
+            sm.metalness = 0.85;
+            sm.roughness = 0.35;
+          } else if (name.includes("panels")) {
+            sm.metalness = 0.35;
+            sm.roughness = 0.38;
+          } else {
+            sm.metalness = 0.2;
+            sm.roughness = Math.max(sm.roughness, 0.5);
+          }
+          sm.envMapIntensity = 1;
+          return sm;
+        };
+        mesh.material = Array.isArray(mesh.material) ? mesh.material.map(fix) : fix(mesh.material);
       }
     });
     return m;
