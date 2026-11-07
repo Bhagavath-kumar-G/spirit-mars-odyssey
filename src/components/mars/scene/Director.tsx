@@ -31,8 +31,9 @@ export function Director() {
   const veil = useRef<HTMLElement | null>(null);
 
   useFrame((state, rawDt) => {
-    const dt = Math.min(rawDt, 0.05);
-    const k = 1 - Math.exp(-6 * dt);
+    // Exponential smoothing is stable for any dt, so allow large steps on slow devices.
+    const dt = Math.min(rawDt, 0.25);
+    const k = 1 - Math.exp(-7 * dt);
     (Object.keys(smoothed) as (keyof typeof smoothed)[]).forEach((key) => {
       smoothed[key] += (scrollState[key] - smoothed[key]) * k;
     });
@@ -91,10 +92,10 @@ export function Director() {
       if (info > 0.001) {
         const ei = ease(info);
         const a = ei * 1.1;
-        const r = fz + ((portrait ? 9.5 : 6.2) - fz) * ei;
+        const r = fz + ((portrait ? 9.5 : 7) - fz) * ei;
         const y = gy + fy + 0.3 * ei;
         tmpA.set(rx + Math.sin(a) * r, y, Math.cos(a) * r);
-        const shift = portrait ? 0 : 1.8 * smoothstep(0, 0.2, info);
+        const shift = portrait ? 0 : 1.1 * smoothstep(0, 0.2, info);
         tmpB.set(rx - Math.cos(a) * shift, gy + 0.9, Math.sin(a) * shift);
         const blend = smoothstep(0, 0.12, info);
         target.lerp(tmpA, blend);
@@ -125,7 +126,7 @@ export function Director() {
       look.current.copy(lookTarget);
       first.current = false;
     } else {
-      const kc = 1 - Math.exp(-5 * dt);
+      const kc = 1 - Math.exp(-9 * dt);
       camera.position.lerp(target, kc);
       look.current.lerp(lookTarget, kc);
     }

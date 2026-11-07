@@ -39,13 +39,13 @@ export function Legacy() {
   return (
     <>
       <section id="legacy" className="relative h-[240vh]" aria-label="Mission legacy">
-        <div className="sticky top-0 flex h-screen flex-col items-center justify-end px-6 pb-[14vh] text-center">
+        <div className="sticky top-0 flex h-screen flex-col items-center justify-start px-6 pt-[14vh] text-center">
           <p data-legacy-line className="hud-label mb-5 text-primary opacity-0">
             05 · Mission legacy
           </p>
           <h2
             data-legacy-line
-            className="display-title max-w-5xl text-[clamp(1.6rem,4.6vw,4rem)] text-foreground opacity-0"
+            className="display-title max-w-5xl text-[clamp(1.4rem,3.6vw,3.2rem)] text-foreground opacity-0"
           >
             The mission ended.
             <br />

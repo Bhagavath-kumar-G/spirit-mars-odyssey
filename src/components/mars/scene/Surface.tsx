@@ -84,7 +84,7 @@ const skyFragment = /* glsl */ `
     day += vec3(1.0, 0.9, 0.75) * g8 * 0.22;
     vec3 dusk = mix(uDuskHorizon, uDuskZenith, smoothstep(-0.02, 0.55, h));
     float band = 1.0 - smoothstep(0.0, 0.3, abs(h));
-    dusk += uGlow * (g8 * 1.1 + g32 * 1.6 + band * g2 * 0.18);
+    dusk += uGlow * (g8 * 0.3 + g32 * 1.3 + band * g2 * 0.08);
     dusk += vec3(0.95, 0.97, 1.0) * smoothstep(0.99935, 0.9998, s) * 1.5;
     gl_FragColor = vec4(mix(day, dusk, uSunset), 1.0);
     #include <tonemapping_fragment>
@@ -292,7 +292,8 @@ function Marker({ index }: { index: number }) {
     const active = world.active === index;
     const reached = world.roverX >= x - 0.2;
     const pulse = 0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 4);
-    if (ring.current) ring.current.opacity = active ? 0.3 + 0.3 * pulse : reached ? 0.1 : 0.22;
+    if (ring.current)
+      ring.current.opacity = (active ? 0.3 + 0.3 * pulse : reached ? 0.1 : 0.22) * (1 - world.rest);
     if (beacon.current) beacon.current.emissiveIntensity = active ? 3 + 2 * pulse : reached ? 0.6 : 1.6;
   });
   return (
