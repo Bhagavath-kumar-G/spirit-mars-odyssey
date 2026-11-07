@@ -134,7 +134,7 @@ function Terrain() {
     const g = new THREE.PlaneGeometry(320, 170, 300, 170);
     g.rotateX(-Math.PI / 2);
     g.translate(0, 0, -60);
-    const pos = g.attributes.position as THREE.BufferAttribute;
+    const pos = g.attributes["position"] as THREE.BufferAttribute;
     const colors = new Float32Array(pos.count * 3);
     const c = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
@@ -177,7 +177,7 @@ function Mountains() {
     const g = new THREE.PlaneGeometry(900, 220, 260, 60);
     g.rotateX(-Math.PI / 2);
     g.translate(0, 0, -250);
-    const pos = g.attributes.position as THREE.BufferAttribute;
+    const pos = g.attributes["position"] as THREE.BufferAttribute;
     const colors = new Float32Array(pos.count * 3);
     const c = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
@@ -393,7 +393,7 @@ function Dust() {
   }, []);
   useFrame((state, dt) => {
     const d = Math.min(dt, 0.05);
-    const p = geometry.attributes.position as THREE.BufferAttribute;
+    const p = geometry.attributes["position"] as THREE.BufferAttribute;
     const cx = world.roverX;
     const t = state.clock.elapsedTime;
     for (let i = 0; i < COUNT; i++) {
@@ -463,7 +463,7 @@ function SunLight() {
   );
 }
 
-export function Surface({ onReady }: { onReady?: () => void }) {
+export function Surface({ onReady }: { onReady?: (() => void) | undefined }) {
   const group = useRef<THREE.Group>(null);
   useFrame(() => {
     if (group.current) group.current.visible = world.mode === "surface";

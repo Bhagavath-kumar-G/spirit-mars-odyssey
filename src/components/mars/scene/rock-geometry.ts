@@ -4,7 +4,7 @@ import { fbm } from "./terrain-math";
 /** Irregular, faceted rock built from a displaced icosahedron. */
 export function makeRockGeometry(seed: number, detail = 1, rough = 0.35, squash = 0.62) {
   const g = new THREE.IcosahedronGeometry(1, detail);
-  const p = g.attributes.position;
+  const p = g.getAttribute("position") as THREE.BufferAttribute;
   const v = new THREE.Vector3();
   for (let i = 0; i < p.count; i++) {
     v.fromBufferAttribute(p, i);

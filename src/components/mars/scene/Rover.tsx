@@ -12,7 +12,7 @@ const WHEEL_RADIUS = 0.13; // metres, measured from the NASA model
 useGLTF.preload(spiritRoverModel.url);
 
 /** NASA/JPL MER model (real scale, metres). Wheels were split into named nodes so they can roll. */
-export function Rover({ onReady }: { onReady?: () => void }) {
+export function Rover({ onReady }: { onReady?: (() => void) | undefined }) {
   const { scene } = useGLTF(spiritRoverModel.url);
   const model = useMemo(() => {
     const m = scene.clone(true);
