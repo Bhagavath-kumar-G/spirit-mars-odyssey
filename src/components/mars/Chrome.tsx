@@ -52,6 +52,17 @@ export function StoryChrome() {
         <p className="hud-label hidden md:block">
           MER-A · Spirit · <span ref={pct} className="text-foreground">000</span>%
         </p>
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className={cn(
+            "hud-label text-foreground transition-opacity md:hidden",
+            pastHero ? "opacity-100" : "pointer-events-none opacity-0",
+          )}
+          aria-label="Return to the beginning"
+        >
+          ↑ Start
+        </button>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-foreground/10 md:hidden">
           <div ref={barFill} className="h-px origin-left scale-x-0 bg-ember-gradient" />
         </div>
@@ -104,7 +115,7 @@ export function StoryChrome() {
         type="button"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         className={cn(
-          "hud-panel fixed bottom-5 right-5 z-30 rounded-sm px-3.5 py-2.5 transition-all duration-500 hover:bg-primary/15 md:bottom-8 md:right-8",
+          "hud-panel fixed bottom-8 right-8 z-30 hidden rounded-sm px-3.5 py-2.5 transition-all duration-500 hover:bg-primary/15 md:block",
           pastHero ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0",
         )}
         aria-label="Return to the beginning"
