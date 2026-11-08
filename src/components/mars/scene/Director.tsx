@@ -2,7 +2,9 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
 import { PATH, roverStateAt, roverXForStop } from "@/lib/mission";
+import { INTRO_PHASES } from "@/lib/assembly-intro";
 import { scrollState } from "@/lib/scroll-store";
+import { ASSEMBLY_POS } from "./AssemblyRover";
 import { clamp01, smoothstep, terrainHeight } from "./terrain-math";
 import { smoothed, world } from "./world";
 
@@ -65,6 +67,28 @@ export function Director() {
       const z = (17 - 8.4 * intro - 1.6 * smoothed.hero) * far;
       target.set(Math.sin(t * 0.12) * 0.25, 0.25 + 0.25 * smoothed.hero, z);
       lookTarget.set(0, 0, 0);
+
+      // Opening assembly: start close on a single wheel, pull back to the full rover,
+      // then fly past it into the orbit view above.
+      const asm = smoothed.assembly;
+      if (asm < 0.9999) {
+        const b = clamp01(asm / INTRO_PHASES.build);
+        const fr = ease(smoothstep(0.02, 0.75, b));
+        const ex = ease(smoothstep(INTRO_PHASES.reveal, 1, asm));
+        const pf = portrait ? 1.75 : 1;
+        tmpB.set(0.5 - 0.5 * fr, 0.13 + 0.42 * fr, 0.6 - 0.6 * fr);
+        tmpA
+          .set(0.95 + 1.65 * fr, 0.1 + 0.9 * fr, 0.12 + 2.58 * fr)
+          .multiplyScalar(pf)
+          .add(tmpB)
+          .add(ASSEMBLY_POS);
+        tmpB.add(ASSEMBLY_POS);
+        tmpA.lerp(target, ex);
+        tmpB.lerp(lookTarget, ex);
+        target.copy(tmpA);
+        lookTarget.copy(tmpB);
+      }
+
       const dive = ease(clamp01(smoothed.descent / 0.5));
       target.lerp(DIVE_POS, dive);
       lookTarget.lerp(DIVE_LOOK, dive);
