@@ -3,6 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import spiritRoverModel from "@/assets/models/spirit-rover.glb.asset.json";
+import { prepareRoverMesh } from "./rover-materials";
 import { terrainHeight } from "./terrain-math";
 import { world } from "./world";
 
@@ -16,33 +17,7 @@ export function Rover({ onReady }: { onReady?: (() => void) | undefined }) {
   const { scene } = useGLTF(spiritRoverModel.url);
   const model = useMemo(() => {
     const m = scene.clone(true);
-    m.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (mesh.isMesh) {
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        // The NASA file marks every material fully metallic, which renders near-black
-        // without a studio HDR. Clone and re-balance so the textures read under Mars light.
-        const fix = (mat: THREE.Material) => {
-          const sm = (mat as THREE.MeshStandardMaterial).clone();
-          if (!sm.isMeshStandardMaterial) return mat;
-          const name = sm.name.toLowerCase();
-          if (name.includes("silver") || name.includes("foil")) {
-            sm.metalness = 0.85;
-            sm.roughness = 0.35;
-          } else if (name.includes("panels")) {
-            sm.metalness = 0.35;
-            sm.roughness = 0.38;
-          } else {
-            sm.metalness = 0.2;
-            sm.roughness = Math.max(sm.roughness, 0.5);
-          }
-          sm.envMapIntensity = 1;
-          return sm;
-        };
-        mesh.material = Array.isArray(mesh.material) ? mesh.material.map(fix) : fix(mesh.material);
-      }
-    });
+    m.traverse(prepareRoverMesh);
     return m;
   }, [scene]);
 
