@@ -11,6 +11,7 @@ export const world = {
 
 /** Smoothed copies of the scroll progress values. */
 export const smoothed = {
+  exploded: 0,
   assembly: 0,
   hero: 0,
   descent: 0,

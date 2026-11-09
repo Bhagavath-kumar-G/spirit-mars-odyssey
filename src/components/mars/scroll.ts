@@ -21,7 +21,15 @@ export function scrollToSectionProgress(id: string, p: number) {
   window.scrollTo({ top: top + range * p, behavior: "smooth" });
 }
 
+/** Smooth-scrolls to the top of an element by ID. */
+export function scrollToId(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: "smooth" });
+}
+
 export const STORY_SECTIONS = [
+  { id: "exploded", label: "Blueprint" },
   { id: "hero", label: "Orbit" },
   { id: "descent", label: "Descent" },
   { id: "timeline", label: "Timeline" },

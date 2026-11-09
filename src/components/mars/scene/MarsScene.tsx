@@ -1,9 +1,13 @@
 import { Environment, Lightformer } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { useCallback, useRef } from "react";
+import { Suspense, useCallback, useRef } from "react";
 import { Director } from "./Director";
+import { ExplodedRover } from "./ExplodedRover";
 import { Space } from "./Space";
 import { Surface } from "./Surface";
+import { preloadRoverParts } from "./rover-parts";
+
+preloadRoverParts();
 
 /** Fixed full-screen 3D layer behind the scrolling story. Lazy-loaded, client only. */
 export default function MarsScene() {
@@ -30,6 +34,9 @@ export default function MarsScene() {
           <Lightformer intensity={0.6} color="#9fb4c8" position={[6, 2, 3]} rotation-y={-Math.PI / 2} scale={[10, 2, 1]} />
         </Environment>
         <Space />
+        <Suspense fallback={null}>
+          <ExplodedRover />
+        </Suspense>
         <Surface onReady={onReady} />
       </Canvas>
     </div>
