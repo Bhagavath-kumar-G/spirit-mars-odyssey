@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { StoryChrome } from "@/components/mars/Chrome";
 import { Descent } from "@/components/mars/Descent";
 import { ExplodedOverlay } from "@/components/mars/ExplodedOverlay";
+import { WorkshopOverlay } from "@/components/mars/WorkshopOverlay";
 import { Hero } from "@/components/mars/Hero";
 import { Legacy } from "@/components/mars/Legacy";
 import { MissionTimeline } from "@/components/mars/MissionTimeline";
@@ -110,6 +111,7 @@ function Index() {
       <div id="descent-veil" className="pointer-events-none fixed inset-0 z-[5] bg-veil opacity-0" />
       <div className="pointer-events-none fixed inset-0 z-[6] bg-vignette" />
       <StoryChrome />
+      <WorkshopOverlay />
       <main className="relative z-10">
         <ExplodedOverlay />
         <Hero />

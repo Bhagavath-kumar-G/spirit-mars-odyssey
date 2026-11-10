@@ -3,10 +3,12 @@ import { useRef } from "react";
 import * as THREE from "three";
 import { PATH, roverStateAt, roverXForStop } from "@/lib/mission";
 import { INTRO_PHASES } from "@/lib/assembly-intro";
+import { builderStore } from "@/lib/builder-store";
 import { INSPECTION_SUBSYSTEMS, inspectionStore } from "@/lib/inspection-store";
 import { scrollState } from "@/lib/scroll-store";
 import { ASSEMBLY_POS } from "./AssemblyRover";
 import { EXPLODED_POS } from "./ExplodedRover";
+import { WORKSHOP_POS } from "./WorkshopBay";
 import { clamp01, smoothstep, terrainHeight } from "./terrain-math";
 import { smoothed, world } from "./world";
 
@@ -18,6 +20,8 @@ const tmpA = new THREE.Vector3();
 const tmpB = new THREE.Vector3();
 const tmpInspectFocus = new THREE.Vector3();
 const tmpInspectCam = new THREE.Vector3();
+const tmpWorkshopFocus = new THREE.Vector3();
+const tmpWorkshopCam = new THREE.Vector3();
 
 const DIVE_POS = new THREE.Vector3(0, 1.62, 1.78);
 const DIVE_LOOK = new THREE.Vector3(0, 1.05, -1.6);
@@ -36,6 +40,7 @@ export function Director() {
   const fog = useRef(new THREE.Fog(fogDay.clone(), 30, 260));
   const veil = useRef<HTMLElement | null>(null);
   const inspectBlend = useRef(0);
+  const workshopBlend = useRef(0);
 
   useFrame((state, rawDt) => {
     // Exponential smoothing is stable for any dt, so allow large steps on slow devices.
@@ -179,6 +184,31 @@ export function Director() {
         tmpB.set(rx + 2.2, gy + 1.7, -2.6);
         target.lerp(tmpA, el);
         lookTarget.lerp(tmpB, el);
+      }
+    }
+
+    // Rover Engineering Workshop studio framing
+    const builder = builderStore.get();
+    const targetWorkshopBlend = builder.isOpen ? 1 : 0;
+    workshopBlend.current += (targetWorkshopBlend - workshopBlend.current) * (1 - Math.exp(-dt * 6.0));
+
+    if (workshopBlend.current > 0.001) {
+      const wb = ease(workshopBlend.current);
+      const zoom = builder.zoomLevel;
+
+      if (portrait) {
+        tmpWorkshopCam.set(0.1, 1.85 * zoom, 3.8 * zoom).add(WORKSHOP_POS);
+        tmpWorkshopFocus.set(0, 0.45, 0).add(WORKSHOP_POS);
+      } else {
+        tmpWorkshopCam.set(2.1 * zoom, 1.45 * zoom, 2.7 * zoom).add(WORKSHOP_POS);
+        tmpWorkshopFocus.set(0, 0.45, 0).add(WORKSHOP_POS);
+      }
+
+      target.lerp(tmpWorkshopCam, wb);
+      lookTarget.lerp(tmpWorkshopFocus, wb);
+
+      if (builder.isOpen) {
+        scene.fog = null;
       }
     }
 

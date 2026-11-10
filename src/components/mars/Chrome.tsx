@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { builderStore, useBuilder } from "@/lib/builder-store";
 import { ensureGsap, STORY_SECTIONS } from "./scroll";
 
 function scrollToId(id: string) {
@@ -10,6 +11,7 @@ function scrollToId(id: string) {
 
 /** Top bar, mission progress rail and return-to-start button. */
 export function StoryChrome() {
+  const { state: builderState } = useBuilder();
   const [active, setActive] = useState(0);
   const [pastHero, setPastHero] = useState(false);
   const railFill = useRef<HTMLDivElement>(null);
@@ -44,7 +46,12 @@ export function StoryChrome() {
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between px-5 py-4 md:px-10">
+      <header
+        className={cn(
+          "fixed left-0 right-0 top-0 z-30 flex items-center justify-between px-5 py-4 md:px-10 transition-opacity duration-300",
+          builderState.isOpen && "opacity-0 pointer-events-none",
+        )}
+      >
         <button type="button" onClick={() => scrollToId("exploded")} className="flex items-center gap-3">
           <span className="relative h-5 w-5 rounded-full bg-ember-gradient shadow-glow" />
           <span className="display-title text-[0.7rem] text-foreground">Mars: Rewind &amp; Beyond</span>
@@ -52,17 +59,28 @@ export function StoryChrome() {
         <p className="hud-label hidden md:block">
           MER-A · Spirit · <span ref={pct} className="text-foreground">000</span>%
         </p>
-        <button
-          type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className={cn(
-            "hud-label text-foreground transition-opacity md:hidden",
-            pastHero ? "opacity-100" : "pointer-events-none opacity-0",
-          )}
-          aria-label="Return to the beginning"
-        >
-          ↑ Start
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => builderStore.setOpen(true)}
+            className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900/80 hover:bg-cyan-950/40 border border-zinc-700/80 hover:border-cyan-500/50 text-xs font-mono text-zinc-300 hover:text-cyan-300 transition-all shadow-sm"
+            title="Open Rover Engineering Workshop"
+          >
+            <span className="text-cyan-400 group-hover:scale-110 transition-transform">🛠️</span>
+            <span className="font-medium">Rover Workshop</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className={cn(
+              "hud-label text-foreground transition-opacity md:hidden",
+              pastHero ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+            aria-label="Return to the beginning"
+          >
+            ↑ Start
+          </button>
+        </div>
         <div className="absolute bottom-0 left-0 right-0 h-px bg-foreground/10 md:hidden">
           <div ref={barFill} className="h-px origin-left scale-x-0 bg-ember-gradient" />
         </div>
@@ -70,7 +88,10 @@ export function StoryChrome() {
 
       <nav
         aria-label="Mission progress"
-        className="fixed right-6 top-1/2 z-30 hidden -translate-y-1/2 md:block"
+        className={cn(
+          "fixed right-6 top-1/2 z-30 hidden -translate-y-1/2 md:block transition-opacity duration-300",
+          builderState.isOpen && "opacity-0 pointer-events-none",
+        )}
       >
         <div className="relative flex flex-col gap-7 py-1">
           <div className="absolute bottom-0 right-[5px] top-0 w-px bg-foreground/15" />
