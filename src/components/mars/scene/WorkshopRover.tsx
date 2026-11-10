@@ -4,6 +4,16 @@ import * as THREE from "three";
 import { useBuilder } from "@/lib/builder-store";
 import { SubsystemCategory } from "@/lib/rover-engineering";
 import { useRoverParts } from "./rover-parts";
+import {
+  CompliantTires,
+  CoringDrill,
+  ExtendedDish,
+  ExtendedSolarWings,
+  HeavyWheels,
+  MmrtgAssembly,
+  PhasedArray,
+  SubsurfaceRadar,
+} from "./WorkshopComponents";
 
 const HIGHLIGHT_COLOR = new THREE.Color("#38bdf8"); // NASA engineering cyan
 const REST_COLOR = new THREE.Color("#000000");
@@ -47,6 +57,37 @@ export function WorkshopRover() {
       map.set(nodeName, mats);
     }
     return map;
+  }, [nodes]);
+
+  // Synchronize baseline GLB node visibility with active hardware selections
+  useEffect(() => {
+    // 1. Mobility Wheels
+    const showStandardWheels = state.selected.mobility === "wheels_standard";
+    const wheelNodes = ["wheel_RF", "wheel_LF", "wheel_RM", "wheel_RL", "wheel_LM", "wheel_LL"];
+    for (const wn of wheelNodes) {
+      if (nodes[wn]) nodes[wn].visible = showStandardWheels;
+    }
+
+    // 2. Power: Solar Array (hidden when Nuclear MMRTG is installed on aft equipment deck)
+    const showSolar = state.selected.power !== "power_mmrtg";
+    if (nodes["solar"]) nodes["solar"].visible = showSolar;
+
+    // 3. Science: Athena Instruments Turret (hidden when Coring Drill is mounted at arm wrist)
+    const showInstruments = state.selected.science !== "science_coring_drill";
+    if (nodes["instruments"]) nodes["instruments"].visible = showInstruments;
+
+    // 4. Telecommunications: High Gain Antenna (hidden when Extended Dish or Phased Array is active)
+    const showHga = state.selected.telecom === "telecom_hga_dish";
+    if (nodes["hga"]) nodes["hga"].visible = showHga;
+  }, [state.selected, nodes]);
+
+  // Restore all baseline GLB nodes on unmount to prevent state bleed into Mars scene
+  useEffect(() => {
+    return () => {
+      for (const obj of Object.values(nodes)) {
+        obj.visible = true;
+      }
+    };
   }, [nodes]);
 
   // Dispose workshop-owned cloned materials on component unmount to prevent WebGL memory leaks
@@ -113,7 +154,43 @@ export function WorkshopRover() {
 
   return (
     <group ref={groupRef} position={[0, 0, 0]}>
+      {/* Pristine Master Cloned Rover Graph */}
       <primitive object={root} />
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODULAR PROCEDURAL COMPONENT REPLACEMENTS                     */}
+      {/* ------------------------------------------------------------- */}
+      {/* Mobility Alternatives */}
+      {state.selected.mobility === "wheels_heavy" && (
+        <HeavyWheels isCategoryActive={state.activeCategory === "mobility"} />
+      )}
+      {state.selected.mobility === "wheels_compliant" && (
+        <CompliantTires isCategoryActive={state.activeCategory === "mobility"} />
+      )}
+
+      {/* Power Alternatives */}
+      {state.selected.power === "power_solar_extended" && (
+        <ExtendedSolarWings isCategoryActive={state.activeCategory === "power"} />
+      )}
+      {state.selected.power === "power_mmrtg" && (
+        <MmrtgAssembly isCategoryActive={state.activeCategory === "power"} />
+      )}
+
+      {/* Science Alternatives */}
+      {state.selected.science === "science_coring_drill" && (
+        <CoringDrill isCategoryActive={state.activeCategory === "science"} />
+      )}
+      {state.selected.science === "science_subsurface_radar" && (
+        <SubsurfaceRadar isCategoryActive={state.activeCategory === "science"} />
+      )}
+
+      {/* Telecommunications Alternatives */}
+      {state.selected.telecom === "telecom_high_gain_extended" && (
+        <ExtendedDish isCategoryActive={state.activeCategory === "telecom"} />
+      )}
+      {state.selected.telecom === "telecom_phased_array" && (
+        <PhasedArray isCategoryActive={state.activeCategory === "telecom"} />
+      )}
     </group>
   );
 }
