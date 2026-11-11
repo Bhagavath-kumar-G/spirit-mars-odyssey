@@ -2,6 +2,14 @@
 // Follows React's useSyncExternalStore pattern for seamless 3D/UI synchronization
 import { useSyncExternalStore } from "react";
 import {
+  evaluateMission,
+  MissionEvaluationResult,
+} from "./mission-evaluation";
+import {
+  MissionId,
+  MISSION_SCENARIOS,
+} from "./mission-scenarios";
+import {
   BASELINE_SELECTIONS,
   calculateEngineeringBudget,
   EngineeringBudget,
@@ -10,6 +18,14 @@ import {
 } from "./rover-engineering";
 
 export type BuilderTab = "configure" | "review";
+export type GameMode = "sandbox" | "challenge";
+
+export const CHALLENGE_STEPS: SubsystemCategory[] = [
+  "mobility",
+  "power",
+  "science",
+  "telecom",
+];
 
 export interface BuilderState {
   isOpen: boolean;
@@ -17,10 +33,22 @@ export interface BuilderState {
   selected: Record<SubsystemCategory, string>;
   scenario: SolarScenario;
   activeTab: BuilderTab;
+
   // Interactive 3D workshop viewport controls
   turntableAngle: number;
   isAutoSpinning: boolean;
   zoomLevel: number;
+
+  // Stage 3.3-B Challenge Gameplay State
+  gameMode: GameMode;
+  activeMissionId: MissionId;
+  challengeStep: number; // 0 to 3 index into CHALLENGE_STEPS
+  completedObjectives: Record<SubsystemCategory, boolean>;
+  isBriefingOpen: boolean;
+
+  // Stage 3.3-C Flight Readiness Review & Mission Debrief
+  isReviewOpen: boolean;
+  reviewTab: "readiness" | "debrief" | "historical";
 }
 
 const DEFAULT_STATE: BuilderState = {
@@ -32,6 +60,20 @@ const DEFAULT_STATE: BuilderState = {
   turntableAngle: 0,
   isAutoSpinning: true,
   zoomLevel: 1.0,
+
+  // Challenge defaults
+  gameMode: "sandbox",
+  activeMissionId: "traverse_alpine",
+  challengeStep: 0,
+  completedObjectives: {
+    mobility: false,
+    power: false,
+    science: false,
+    telecom: false,
+  },
+  isBriefingOpen: false,
+  isReviewOpen: false,
+  reviewTab: "readiness",
 };
 
 let currentState: BuilderState = { ...DEFAULT_STATE };
@@ -78,16 +120,140 @@ export const builderStore = {
   },
 
   selectOption(category: SubsystemCategory, optionId: string): void {
+    const updatedSelected = {
+      ...currentState.selected,
+      [category]: optionId,
+    };
+
+    // If in challenge mode, automatically mark objective as completed
+    const updatedCompleted = currentState.gameMode === "challenge"
+      ? { ...currentState.completedObjectives, [category]: true }
+      : currentState.completedObjectives;
+
     currentState = {
       ...currentState,
-      selected: {
-        ...currentState.selected,
-        [category]: optionId,
-      },
+      selected: updatedSelected,
+      completedObjectives: updatedCompleted,
     };
     emit();
   },
 
+  // -------------------------------------------------------------
+  // Challenge Mode State Actions (Stage 3.3-B)
+  // -------------------------------------------------------------
+  setGameMode(gameMode: GameMode): void {
+    if (gameMode === currentState.gameMode) return;
+
+    if (gameMode === "challenge") {
+      // Sync scenario to active mission environment
+      const scen = MISSION_SCENARIOS[currentState.activeMissionId] ?? MISSION_SCENARIOS.traverse_alpine;
+      currentState = {
+        ...currentState,
+        gameMode: "challenge",
+        scenario: scen.environment.solarScenario,
+        activeCategory: CHALLENGE_STEPS[currentState.challengeStep] ?? "mobility",
+      };
+    } else {
+      currentState = {
+        ...currentState,
+        gameMode: "sandbox",
+      };
+    }
+    emit();
+  },
+
+  setActiveMission(activeMissionId: MissionId): void {
+    const scen = MISSION_SCENARIOS[activeMissionId] ?? MISSION_SCENARIOS.traverse_alpine;
+    currentState = {
+      ...currentState,
+      activeMissionId,
+      scenario: scen.environment.solarScenario,
+    };
+    emit();
+  },
+
+  startChallenge(missionId?: MissionId): void {
+    const targetMission = missionId ?? currentState.activeMissionId;
+    const scen = MISSION_SCENARIOS[targetMission] ?? MISSION_SCENARIOS.traverse_alpine;
+
+    currentState = {
+      ...currentState,
+      gameMode: "challenge",
+      activeMissionId: targetMission,
+      scenario: scen.environment.solarScenario,
+      challengeStep: 0,
+      activeCategory: "mobility",
+      completedObjectives: {
+        mobility: false,
+        power: false,
+        science: false,
+        telecom: false,
+      },
+      isBriefingOpen: false,
+      isReviewOpen: false,
+      reviewTab: "readiness",
+    };
+    emit();
+  },
+
+  setBriefingOpen(isBriefingOpen: boolean): void {
+    currentState = { ...currentState, isBriefingOpen };
+    emit();
+  },
+
+  setReviewOpen(isReviewOpen: boolean): void {
+    currentState = { ...currentState, isReviewOpen };
+    emit();
+  },
+
+  setReviewTab(reviewTab: "readiness" | "debrief" | "historical"): void {
+    currentState = { ...currentState, reviewTab };
+    emit();
+  },
+
+  setChallengeStep(stepIndex: number): void {
+    const clamped = Math.max(0, Math.min(CHALLENGE_STEPS.length - 1, stepIndex));
+    const cat = CHALLENGE_STEPS[clamped] ?? "mobility";
+    currentState = {
+      ...currentState,
+      challengeStep: clamped,
+      activeCategory: cat,
+    };
+    emit();
+  },
+
+  nextChallengeStep(): void {
+    if (currentState.challengeStep < CHALLENGE_STEPS.length - 1) {
+      builderStore.setChallengeStep(currentState.challengeStep + 1);
+    }
+  },
+
+  prevChallengeStep(): void {
+    if (currentState.challengeStep > 0) {
+      builderStore.setChallengeStep(currentState.challengeStep - 1);
+    }
+  },
+
+  resetChallenge(): void {
+    currentState = {
+      ...currentState,
+      challengeStep: 0,
+      activeCategory: "mobility",
+      selected: { ...BASELINE_SELECTIONS },
+      completedObjectives: {
+        mobility: false,
+        power: false,
+        science: false,
+        telecom: false,
+      },
+      isReviewOpen: false,
+    };
+    emit();
+  },
+
+  // -------------------------------------------------------------
+  // Viewport Controls
+  // -------------------------------------------------------------
   setTurntableAngle(turntableAngle: number): void {
     currentState = { ...currentState, turntableAngle };
     emit();
@@ -144,6 +310,17 @@ export const builderStore = {
       turntableAngle: 0,
       zoomLevel: 1.0,
       isAutoSpinning: true,
+      gameMode: "sandbox",
+      challengeStep: 0,
+      completedObjectives: {
+        mobility: false,
+        power: false,
+        science: false,
+        telecom: false,
+      },
+      isBriefingOpen: false,
+      isReviewOpen: false,
+      reviewTab: "readiness",
     };
     emit();
   },
@@ -158,11 +335,14 @@ export const builderStore = {
 
 /**
  * Reactive React hook for the Rover Builder store.
- * Re-renders components when workshop selections, scenarios, viewport, or UI states change.
+ * Re-renders components when workshop selections, scenarios, viewport, or challenge states change.
  */
 export function useBuilder(): {
   state: BuilderState;
   budget: EngineeringBudget;
+  evaluation: MissionEvaluationResult;
+  completedCount: number;
+  progressPercent: number;
   setOpen: (isOpen: boolean) => void;
   setActiveCategory: (cat: SubsystemCategory) => void;
   setActiveTab: (tab: BuilderTab) => void;
@@ -177,6 +357,17 @@ export function useBuilder(): {
   zoomOut: () => void;
   resetView: () => void;
   resetToBaseline: () => void;
+  // Challenge & Review Actions
+  setGameMode: (mode: GameMode) => void;
+  setActiveMission: (id: MissionId) => void;
+  startChallenge: (missionId?: MissionId) => void;
+  setBriefingOpen: (isOpen: boolean) => void;
+  setReviewOpen: (isOpen: boolean) => void;
+  setReviewTab: (tab: "readiness" | "debrief" | "historical") => void;
+  setChallengeStep: (stepIndex: number) => void;
+  nextChallengeStep: () => void;
+  prevChallengeStep: () => void;
+  resetChallenge: () => void;
 } {
   const state = useSyncExternalStore(
     builderStore.subscribe,
@@ -185,10 +376,17 @@ export function useBuilder(): {
   );
 
   const budget = calculateEngineeringBudget(state.selected, state.scenario);
+  const evaluation = evaluateMission(state.activeMissionId, state.selected);
+
+  const completedCount = Object.values(state.completedObjectives).filter(Boolean).length;
+  const progressPercent = Math.round((completedCount / CHALLENGE_STEPS.length) * 100);
 
   return {
     state,
     budget,
+    evaluation,
+    completedCount,
+    progressPercent,
     setOpen: builderStore.setOpen,
     setActiveCategory: builderStore.setActiveCategory,
     setActiveTab: builderStore.setActiveTab,
@@ -203,5 +401,16 @@ export function useBuilder(): {
     zoomOut: builderStore.zoomOut,
     resetView: builderStore.resetView,
     resetToBaseline: builderStore.resetToBaseline,
+
+    setGameMode: builderStore.setGameMode,
+    setActiveMission: builderStore.setActiveMission,
+    startChallenge: builderStore.startChallenge,
+    setBriefingOpen: builderStore.setBriefingOpen,
+    setReviewOpen: builderStore.setReviewOpen,
+    setReviewTab: builderStore.setReviewTab,
+    setChallengeStep: builderStore.setChallengeStep,
+    nextChallengeStep: builderStore.nextChallengeStep,
+    prevChallengeStep: builderStore.prevChallengeStep,
+    resetChallenge: builderStore.resetChallenge,
   };
 }
