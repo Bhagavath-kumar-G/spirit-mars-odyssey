@@ -2,6 +2,9 @@ import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect } from "react";
 import { StoryChrome } from "@/components/mars/Chrome";
 import { Descent } from "@/components/mars/Descent";
+import { ExplodedOverlay } from "@/components/mars/ExplodedOverlay";
+import { SurfaceControlsOverlay } from "@/components/mars/SurfaceControlsOverlay";
+import { WorkshopOverlay } from "@/components/mars/WorkshopOverlay";
 import { Hero } from "@/components/mars/Hero";
 import { Legacy } from "@/components/mars/Legacy";
 import { MissionTimeline } from "@/components/mars/MissionTimeline";
@@ -51,6 +54,7 @@ function useStoryScroll() {
             scrollState[key] = s.progress;
           },
         });
+      bind("exploded", "exploded");
       bind("hero", "hero", "top top", "bottom top");
       bind("descent", "descent");
       bind("timeline", "timeline");
@@ -60,10 +64,14 @@ function useStoryScroll() {
       gsap.from("[data-hero-in]", {
         opacity: 0,
         y: 28,
-        duration: 1.6,
-        stagger: 0.2,
+        duration: 1.4,
+        stagger: 0.18,
         ease: "power3.out",
-        delay: 0.5,
+        scrollTrigger: {
+          trigger: "#hero",
+          start: "top 75%",
+          toggleActions: "play none none reverse",
+        },
       });
       gsap.to("[data-hero-content]", {
         opacity: 0,
@@ -104,7 +112,10 @@ function Index() {
       <div id="descent-veil" className="pointer-events-none fixed inset-0 z-[5] bg-veil opacity-0" />
       <div className="pointer-events-none fixed inset-0 z-[6] bg-vignette" />
       <StoryChrome />
+      <WorkshopOverlay />
+      <SurfaceControlsOverlay />
       <main className="relative z-10">
+        <ExplodedOverlay />
         <Hero />
         <Descent />
         <MissionTimeline />

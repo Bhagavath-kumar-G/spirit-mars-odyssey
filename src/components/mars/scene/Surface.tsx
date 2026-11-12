@@ -2,6 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { MILESTONES, PATH, roverXForStop } from "@/lib/mission";
+import { surfaceStore } from "@/lib/surface-store";
 import { Rover } from "./Rover";
 import { makeGlowTexture, makeRockGeometry } from "./rock-geometry";
 import { fbm, mulberry32, ridged, smoothstep, terrainHeight } from "./terrain-math";
@@ -467,7 +468,9 @@ function SunLight() {
 export function Surface({ onReady }: { onReady?: (() => void) | undefined }) {
   const group = useRef<THREE.Group>(null);
   useFrame(() => {
-    if (group.current) group.current.visible = world.mode === "surface";
+    if (group.current) {
+      group.current.visible = world.mode === "surface" && !surfaceStore.get().isActive;
+    }
   });
   return (
     <group ref={group} visible={false}>

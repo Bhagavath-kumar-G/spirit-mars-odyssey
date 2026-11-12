@@ -3,9 +3,14 @@ import { useRef } from "react";
 import * as THREE from "three";
 import { PATH, roverStateAt, roverXForStop } from "@/lib/mission";
 import { INTRO_PHASES } from "@/lib/assembly-intro";
+import { builderStore } from "@/lib/builder-store";
+import { INSPECTION_SUBSYSTEMS, inspectionStore } from "@/lib/inspection-store";
 import { scrollState } from "@/lib/scroll-store";
+import { surfaceStore } from "@/lib/surface-store";
 import { ASSEMBLY_POS } from "./AssemblyRover";
-import { clamp01, smoothstep, terrainHeight } from "./terrain-math";
+import { EXPLODED_POS } from "./ExplodedRover";
+import { WORKSHOP_POS } from "./WorkshopBay";
+import { clamp01, smoothstep, surfaceTerrainHeight, terrainHeight } from "./terrain-math";
 import { smoothed, world } from "./world";
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -14,6 +19,12 @@ const target = new THREE.Vector3();
 const lookTarget = new THREE.Vector3();
 const tmpA = new THREE.Vector3();
 const tmpB = new THREE.Vector3();
+const tmpInspectFocus = new THREE.Vector3();
+const tmpInspectCam = new THREE.Vector3();
+const tmpWorkshopFocus = new THREE.Vector3();
+const tmpWorkshopCam = new THREE.Vector3();
+const tmpSurfaceFocus = new THREE.Vector3();
+const tmpSurfaceCam = new THREE.Vector3();
 
 const DIVE_POS = new THREE.Vector3(0, 1.62, 1.78);
 const DIVE_LOOK = new THREE.Vector3(0, 1.05, -1.6);
@@ -31,6 +42,9 @@ export function Director() {
   const first = useRef(true);
   const fog = useRef(new THREE.Fog(fogDay.clone(), 30, 260));
   const veil = useRef<HTMLElement | null>(null);
+  const inspectBlend = useRef(0);
+  const workshopBlend = useRef(0);
+  const surfaceBlend = useRef(0);
 
   useFrame((state, rawDt) => {
     // Exponential smoothing is stable for any dt, so allow large steps on slow devices.
@@ -68,10 +82,49 @@ export function Director() {
       target.set(Math.sin(t * 0.12) * 0.25, 0.25 + 0.25 * smoothed.hero, z);
       lookTarget.set(0, 0, 0);
 
-      // Opening assembly: start close on a single wheel, pull back to the full rover,
-      // then fly past it into the orbit view above.
-      const asm = smoothed.assembly;
-      if (asm < 0.9999) {
+      // Opening exploded rover experience: straight-on level framing of the assembled rover,
+      // pulling back smoothly as components separate outward, then flying into Mars orbit.
+      const exp = smoothed.exploded;
+      if (exp < 0.999) {
+        const pull = ease(smoothstep(0.08, 0.78, exp));
+        const ex = ease(smoothstep(0.85, 1.0, exp));
+        const pf = portrait ? 1.55 : 1;
+        tmpB.set(0, 0.45 + pull * 0.15, 0).add(EXPLODED_POS);
+        tmpA
+          .set(0, 0.45 + pull * 0.25, (4.2 + pull * 1.8) * pf)
+          .add(EXPLODED_POS);
+        tmpA.lerp(target, ex);
+        tmpB.lerp(lookTarget, ex);
+        target.copy(tmpA);
+        lookTarget.copy(tmpB);
+
+        // Interactive Component Inspection framing (smooth exponential lerp)
+        const inspection = inspectionStore.get();
+        const rawScroll = scrollState.exploded;
+        const inExplodedRange = rawScroll >= 0.20 && rawScroll <= 0.88;
+        if (inspection.isInspecting && !inExplodedRange) {
+          inspectionStore.close();
+        }
+
+        const activeInspect = inspection.isInspecting && inExplodedRange && inspection.inspectedPartId;
+        const targetBlend = activeInspect ? 1 : 0;
+        inspectBlend.current += (targetBlend - inspectBlend.current) * (1 - Math.exp(-dt * 5.0));
+
+        if (inspectBlend.current > 0.001 && inspection.inspectedPartId) {
+          const sub = INSPECTION_SUBSYSTEMS[inspection.inspectedPartId];
+          if (sub) {
+            tmpInspectFocus.set(...sub.cameraFocusOffset).add(EXPLODED_POS);
+            tmpInspectCam
+              .set(...sub.cameraOffset)
+              .multiplyScalar(portrait ? 1.35 : 1.0)
+              .add(tmpInspectFocus);
+            const ib = ease(inspectBlend.current);
+            target.lerp(tmpInspectCam, ib);
+            lookTarget.lerp(tmpInspectFocus, ib);
+          }
+        }
+      } else if (smoothed.assembly < 0.9999) {
+        const asm = smoothed.assembly;
         const b = clamp01(asm / INTRO_PHASES.build);
         const fr = ease(smoothstep(0.02, 0.75, b));
         const ex = ease(smoothstep(INTRO_PHASES.reveal, 1, asm));
@@ -136,6 +189,63 @@ export function Director() {
         target.lerp(tmpA, el);
         lookTarget.lerp(tmpB, el);
       }
+    }
+
+    // Rover Engineering Workshop studio framing
+    const builder = builderStore.get();
+    const targetWorkshopBlend = builder.isOpen ? 1 : 0;
+    workshopBlend.current += (targetWorkshopBlend - workshopBlend.current) * (1 - Math.exp(-dt * 6.0));
+
+    if (workshopBlend.current > 0.001) {
+      const wb = ease(workshopBlend.current);
+      const zoom = builder.zoomLevel;
+
+      if (portrait) {
+        tmpWorkshopCam.set(0.1, 1.85 * zoom, 3.8 * zoom).add(WORKSHOP_POS);
+        tmpWorkshopFocus.set(0, 0.45, 0).add(WORKSHOP_POS);
+      } else {
+        tmpWorkshopCam.set(2.1 * zoom, 1.45 * zoom, 2.7 * zoom).add(WORKSHOP_POS);
+        tmpWorkshopFocus.set(0, 0.45, 0).add(WORKSHOP_POS);
+      }
+
+      target.lerp(tmpWorkshopCam, wb);
+      lookTarget.lerp(tmpWorkshopFocus, wb);
+
+      if (builder.isOpen) {
+        scene.fog = null;
+      }
+    }
+
+    // Mars Surface Operations framing & Ground Collision Prevention
+    const surfaceOps = surfaceStore.get();
+    const targetSurfaceBlend = surfaceOps.isActive ? 1 : 0;
+    surfaceBlend.current += (targetSurfaceBlend - surfaceBlend.current) * (1 - Math.exp(-dt * 6.5));
+
+    if (surfaceBlend.current > 0.001) {
+      const sb = ease(surfaceBlend.current);
+      const [tx, ty, tz] = surfaceOps.cameraTarget;
+      tmpSurfaceFocus.set(tx, ty, tz);
+
+      const pf = portrait ? 1.35 : 1.0;
+      const dist = surfaceOps.cameraDistance * pf;
+      const phi = Math.PI / 2 - surfaceOps.cameraElevation;
+      const theta = surfaceOps.cameraAzimuth;
+
+      const cx = tx + dist * Math.sin(phi) * Math.sin(theta);
+      const cz = tz + dist * Math.sin(phi) * Math.cos(theta);
+      let cy = ty + dist * Math.cos(phi);
+
+      // Camera collision prevention: Never allow camera to clip below terrain surface
+      const groundY = surfaceTerrainHeight(cx, cz);
+      const minCamY = groundY + 1.25;
+      if (cy < minCamY) {
+        cy = minCamY;
+      }
+
+      tmpSurfaceCam.set(cx, cy, cz);
+
+      target.lerp(tmpSurfaceCam, sb);
+      lookTarget.lerp(tmpSurfaceFocus, sb);
     }
 
     const fov = portrait ? 58 : 42;
