@@ -6,10 +6,11 @@ import { INTRO_PHASES } from "@/lib/assembly-intro";
 import { builderStore } from "@/lib/builder-store";
 import { INSPECTION_SUBSYSTEMS, inspectionStore } from "@/lib/inspection-store";
 import { scrollState } from "@/lib/scroll-store";
+import { surfaceStore } from "@/lib/surface-store";
 import { ASSEMBLY_POS } from "./AssemblyRover";
 import { EXPLODED_POS } from "./ExplodedRover";
 import { WORKSHOP_POS } from "./WorkshopBay";
-import { clamp01, smoothstep, terrainHeight } from "./terrain-math";
+import { clamp01, smoothstep, surfaceTerrainHeight, terrainHeight } from "./terrain-math";
 import { smoothed, world } from "./world";
 
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -22,6 +23,8 @@ const tmpInspectFocus = new THREE.Vector3();
 const tmpInspectCam = new THREE.Vector3();
 const tmpWorkshopFocus = new THREE.Vector3();
 const tmpWorkshopCam = new THREE.Vector3();
+const tmpSurfaceFocus = new THREE.Vector3();
+const tmpSurfaceCam = new THREE.Vector3();
 
 const DIVE_POS = new THREE.Vector3(0, 1.62, 1.78);
 const DIVE_LOOK = new THREE.Vector3(0, 1.05, -1.6);
@@ -41,6 +44,7 @@ export function Director() {
   const veil = useRef<HTMLElement | null>(null);
   const inspectBlend = useRef(0);
   const workshopBlend = useRef(0);
+  const surfaceBlend = useRef(0);
 
   useFrame((state, rawDt) => {
     // Exponential smoothing is stable for any dt, so allow large steps on slow devices.
@@ -210,6 +214,38 @@ export function Director() {
       if (builder.isOpen) {
         scene.fog = null;
       }
+    }
+
+    // Mars Surface Operations framing & Ground Collision Prevention
+    const surfaceOps = surfaceStore.get();
+    const targetSurfaceBlend = surfaceOps.isActive ? 1 : 0;
+    surfaceBlend.current += (targetSurfaceBlend - surfaceBlend.current) * (1 - Math.exp(-dt * 6.5));
+
+    if (surfaceBlend.current > 0.001) {
+      const sb = ease(surfaceBlend.current);
+      const [tx, ty, tz] = surfaceOps.cameraTarget;
+      tmpSurfaceFocus.set(tx, ty, tz);
+
+      const pf = portrait ? 1.35 : 1.0;
+      const dist = surfaceOps.cameraDistance * pf;
+      const phi = Math.PI / 2 - surfaceOps.cameraElevation;
+      const theta = surfaceOps.cameraAzimuth;
+
+      const cx = tx + dist * Math.sin(phi) * Math.sin(theta);
+      const cz = tz + dist * Math.sin(phi) * Math.cos(theta);
+      let cy = ty + dist * Math.cos(phi);
+
+      // Camera collision prevention: Never allow camera to clip below terrain surface
+      const groundY = surfaceTerrainHeight(cx, cz);
+      const minCamY = groundY + 1.25;
+      if (cy < minCamY) {
+        cy = minCamY;
+      }
+
+      tmpSurfaceCam.set(cx, cy, cz);
+
+      target.lerp(tmpSurfaceCam, sb);
+      lookTarget.lerp(tmpSurfaceFocus, sb);
     }
 
     const fov = portrait ? 58 : 42;

@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { StoryChrome } from "@/components/mars/Chrome";
 import { Descent } from "@/components/mars/Descent";
 import { ExplodedOverlay } from "@/components/mars/ExplodedOverlay";
+import { SurfaceControlsOverlay } from "@/components/mars/SurfaceControlsOverlay";
 import { WorkshopOverlay } from "@/components/mars/WorkshopOverlay";
 import { Hero } from "@/components/mars/Hero";
 import { Legacy } from "@/components/mars/Legacy";
@@ -112,6 +113,7 @@ function Index() {
       <div className="pointer-events-none fixed inset-0 z-[6] bg-vignette" />
       <StoryChrome />
       <WorkshopOverlay />
+      <SurfaceControlsOverlay />
       <main className="relative z-10">
         <ExplodedOverlay />
         <Hero />

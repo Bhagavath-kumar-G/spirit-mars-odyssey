@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { CHALLENGE_STEPS, useBuilder } from "@/lib/builder-store";
+import { surfaceStore } from "@/lib/surface-store";
 import {
   getComponentRecommendation,
 } from "@/lib/mission-evaluation";
@@ -275,12 +276,25 @@ export function WorkshopOverlay() {
 
           <button
             type="button"
+            onClick={() => {
+              setOpen(false);
+              surfaceStore.deployRover();
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-950/80 hover:bg-orange-900 border border-orange-500/50 text-xs font-mono text-orange-300 hover:text-white transition-colors"
+            title="Deploy to Mars Surface Operations"
+          >
+            <span>🪐</span>
+            <span className="hidden sm:inline">Mars Surface</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setOpen(false)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-mono text-zinc-300 hover:text-white transition-colors"
             title="Return to Story (Esc)"
           >
             <span>✕</span>
-            <span className="hidden sm:inline">Return to Mars</span>
+            <span className="hidden sm:inline">Return to Story</span>
           </button>
         </div>
       </header>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { builderStore, useBuilder } from "@/lib/builder-store";
+import { surfaceStore, useSurfaceStore } from "@/lib/surface-store";
 import { ensureGsap, STORY_SECTIONS } from "./scroll";
 
 function scrollToId(id: string) {
@@ -12,11 +13,14 @@ function scrollToId(id: string) {
 /** Top bar, mission progress rail and return-to-start button. */
 export function StoryChrome() {
   const { state: builderState } = useBuilder();
+  const { state: surfaceState } = useSurfaceStore();
   const [active, setActive] = useState(0);
   const [pastHero, setPastHero] = useState(false);
   const railFill = useRef<HTMLDivElement>(null);
   const barFill = useRef<HTMLDivElement>(null);
   const pct = useRef<HTMLSpanElement>(null);
+
+  const isHidden = builderState.isOpen || surfaceState.isActive;
 
   useEffect(() => {
     const { ScrollTrigger } = ensureGsap();
@@ -49,7 +53,7 @@ export function StoryChrome() {
       <header
         className={cn(
           "fixed left-0 right-0 top-0 z-30 flex items-center justify-between px-5 py-4 md:px-10 transition-opacity duration-300",
-          builderState.isOpen && "opacity-0 pointer-events-none",
+          isHidden && "opacity-0 pointer-events-none",
         )}
       >
         <button type="button" onClick={() => scrollToId("exploded")} className="flex items-center gap-3">
@@ -59,7 +63,19 @@ export function StoryChrome() {
         <p className="hud-label hidden md:block">
           MER-A · Spirit · <span ref={pct} className="text-foreground">000</span>%
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              builderStore.setOpen(false);
+              surfaceStore.deployRover();
+            }}
+            className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-900/80 hover:bg-orange-950/40 border border-zinc-700/80 hover:border-orange-500/50 text-xs font-mono text-zinc-300 hover:text-orange-300 transition-all shadow-sm"
+            title="Explore Mars Surface Operations Environment"
+          >
+            <span className="text-orange-400 group-hover:scale-110 transition-transform">🪐</span>
+            <span className="font-medium">Mars Surface</span>
+          </button>
           <button
             type="button"
             onClick={() => builderStore.setOpen(true)}
@@ -90,7 +106,7 @@ export function StoryChrome() {
         aria-label="Mission progress"
         className={cn(
           "fixed right-6 top-1/2 z-30 hidden -translate-y-1/2 md:block transition-opacity duration-300",
-          builderState.isOpen && "opacity-0 pointer-events-none",
+          isHidden && "opacity-0 pointer-events-none",
         )}
       >
         <div className="relative flex flex-col gap-7 py-1">

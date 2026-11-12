@@ -5,6 +5,7 @@ import { Director } from "./Director";
 import { ExplodedRover } from "./ExplodedRover";
 import { Space } from "./Space";
 import { Surface } from "./Surface";
+import { SurfaceEnvironment } from "./SurfaceEnvironment";
 import { WorkshopBay } from "./WorkshopBay";
 import { preloadRoverParts } from "./rover-parts";
 
@@ -38,6 +39,7 @@ export default function MarsScene() {
         <Suspense fallback={null}>
           <ExplodedRover />
           <WorkshopBay />
+          <SurfaceEnvironment />
         </Suspense>
         <Surface onReady={onReady} />
       </Canvas>

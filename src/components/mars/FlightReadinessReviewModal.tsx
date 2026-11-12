@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
-import { useBuilder } from "@/lib/builder-store";
+import { builderStore, useBuilder } from "@/lib/builder-store";
+import { surfaceStore } from "@/lib/surface-store";
 import { COMPONENT_OPTIONS, SIMULATION_MASS_THRESHOLD_KG, SubsystemCategory } from "@/lib/rover-engineering";
 import { MISSION_SCENARIOS } from "@/lib/mission-scenarios";
 import { cn } from "@/lib/utils";
@@ -740,8 +741,22 @@ export const FlightReadinessReviewModal: React.FC = () => {
 
             <button
               type="button"
+              onClick={() => {
+                setReviewOpen(false);
+                builderStore.setOpen(false);
+                surfaceStore.deployRover();
+              }}
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold transition-all shadow-md flex items-center gap-1.5"
+              title="Deploy configured rover to Mars surface exploration environment"
+            >
+              <span>🚀</span>
+              <span>Deploy to Mars Surface</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setReviewOpen(false)}
-              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-colors"
+              className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold transition-colors border border-zinc-700"
             >
               Close Review
             </button>
